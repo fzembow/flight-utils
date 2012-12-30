@@ -15,8 +15,19 @@ in your browser. The credentials aren't stored anywhere by the script.
 - [soupselect](http://code.google.com/p/soupselect/) makes working with BeautifulSoup easier. It's bundled in the code.
 
 # Usage
-> Print out all of your flight history in CSV format.
 
-    python united.py [UNITED USERNAME] [password]
+```
+united.py [-h] [--include_non_flights] USERNAME PASSWORD
 
+Fetch United MileagePlus flight history
 
+positional arguments:
+  USERNAME              MileagePlus Number or Username.
+  PASSWORD              PIN or password.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --include_non_flights
+                        Whether to include non-flight entries, like mile
+                        transfers or car rentals.
+```
