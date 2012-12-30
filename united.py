@@ -2,7 +2,7 @@ from BeautifulSoup import BeautifulSoup
 from soupselect import select
 import mechanize
 
-import sys, time, urllib, os, csv, datetime
+import sys, time, urllib, os, csv, datetime, argparse, warnings
 
 USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.45 Safari/537.17'
 ACCOUNT_URL = 'http://www.united.com/web/en-US/apps/account/account.aspx'
@@ -13,20 +13,25 @@ NEW_URL_STATEMENT = 'http://www.united.com/web/en-US/apps/mileageplus/statement/
 CRAWL_DELAY = 1 # Seconds to wait between HTTP requests.
 
 
-def main(argv):
+
+
+def main():
   """If the script is run from the command line, it takes a username and password."""
-  if len(argv) != 3:
-    print "Usage: python %s [USERNAME] [PASSWORD]" % argv[0]
-    sys.exit(1)
 
-  username = argv[1]
-  password = argv[2]
+  parser = argparse.ArgumentParser(description='Fetch United MileagePlus flight history')
+  parser.add_argument('username', metavar='USERNAME', type=str,
+                      help='MileagePlus Number or Username.')
+  parser.add_argument('password', metavar='PASSWORD', type=str,
+                      help='PIN or password.')
+  parser.add_argument('--include_non_flights', action='store_true',
+                      help='Whether to include non-flight entries, like mile transfers or car rentals.')
+  opts = parser.parse_args()
 
-  flights = fetch_united_history(username, password)
+  flights = fetch_united_history(opts.username, opts.password, opts)
   dump_csv(flights)
 
 
-def fetch_united_history(username, password):
+def fetch_united_history(username, password, opts=None):
   """Retrieves a given user's United history."""
 
   # Set up browser
@@ -40,7 +45,7 @@ def fetch_united_history(username, password):
   # Get flights from each statement.
   flights = []
   for statement_url in statement_urls:
-    flights.extend(get_statement_flights(browser, statement_url))
+    flights.extend(get_statement_flights(browser, statement_url, opts))
 
   # Sort the flights by date.
   flights.sort(key=lambda x: datetime.datetime.strptime(x[0], '%m/%d/%Y'))
@@ -72,7 +77,7 @@ def login(browser, username, password):
   time.sleep(CRAWL_DELAY)
 
 
-def get_statement_urls(browser, base_url, is_old_statement=False):
+def get_statement_urls(browser, base_url, is_old_statement):
   """Finds the URLs for each other statement, given a base URL for a statement."""
 
   STATEMENT_SELECT_ID = '#ctl00_ContentInfo_drpStatementDates option'
@@ -99,16 +104,16 @@ def get_statement_urls(browser, base_url, is_old_statement=False):
   return statement_urls
 
 
-def get_statement_flights(browser, statement_url):
+def get_statement_flights(browser, statement_url, opts=None):
   """Returns each flight found at a given statement URL.""" 
 
   html = browser.open(statement_url).read()
-  flights = parse_statement_flights(BeautifulSoup(html))
+  flights = parse_statement_flights(BeautifulSoup(html), opts)
   time.sleep(CRAWL_DELAY)
   return flights
 
 
-def parse_statement_flights(soup):
+def parse_statement_flights(soup, opts=None):
   """Takes a BeautifulSoup instance and finds what flights, if any, it contains."""
 
   notes = select(soup, "span.Notes")
@@ -123,8 +128,13 @@ def parse_statement_flights(soup):
   for entry in entries:
     values = map(lambda x: x.text.strip(), entry)
     num_empty_values = values.count('')
-    # Some entries, like car rentals or miles transfers, don't have all the fields.
-    if num_empty_values < 4:
+    
+    # Entries with lots of blanks are mile transfers or car rentals,
+    # so don't include them unless they are desired.
+    if num_empty_values > 3:
+      if opts and opts.include_non_flights:
+        trips.append(values)
+    else: 
       trips.append(values)
   return trips
 
@@ -151,7 +161,10 @@ def setup_browser():
   """Sets up a browser that will store cookies and state."""
   browser = mechanize.Browser()
   browser.set_handle_equiv(True)
-  browser.set_handle_gzip(True)
+  with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    # This is experimental, but we don't care.
+    browser.set_handle_gzip(True)
   browser.set_handle_redirect(True)
   browser.set_handle_referer(True)
   browser.set_handle_robots(False)
@@ -163,4 +176,4 @@ def setup_browser():
 
 
 if __name__ == "__main__":
-  main(sys.argv)
+  main()
