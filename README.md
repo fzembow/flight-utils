@@ -10,9 +10,9 @@ United doesn't use HTTPS, running this script is just as secure as accessing Uni
 in your browser. The credentials aren't stored anywhere by the script.
 
 # Dependencies
-[mechanize](http://wwwsearch.sourceforge.net/mechanize/) allows for programmatic navigation of web pages. Install it with `easy_install mechanize`.
-[BeautifulSoup](http://www.crummy.com/software/BeautifulSoup/) makes parsing HTML easy. Install it with either: `easy_install BeautifulSoup` or `pip install BeautifulSoup`.
-[soupselect](http://code.google.com/p/soupselect/) makes working with BeautifulSoup easier. It's bundled in the code.
+- [mechanize](http://wwwsearch.sourceforge.net/mechanize/) allows for programmatic navigation of web pages. Install it with `easy_install mechanize`.
+- [BeautifulSoup](http://www.crummy.com/software/BeautifulSoup/) makes parsing HTML easy. Install it with either: `easy_install BeautifulSoup` or `pip install BeautifulSoup`.
+- [soupselect](http://code.google.com/p/soupselect/) makes working with BeautifulSoup easier. It's bundled in the code.
 
 # Usage
 > Print out all of your flight history in CSV format.
