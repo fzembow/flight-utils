@@ -1,6 +1,13 @@
-
 # About
-United doesn't provide an API or export of your frequent flier information, such as the flights which you have taken on United or any of their Star Alliance partners. This is a script that allows you to export your flight data from the United website.
+United Airlines doesn't provide an API or export of your frequent flier information, 
+such as the flights which you have taken on United or any of their Star Alliance partners. 
+This is a script that allows you to export your flight data from the United website, including
+dates, airports, and miles.
+
+It works by scraping a United MileagePlus account, given a username and password. This means that
+the script can break any time that United decides to update its page structure or URLs. Since
+United doesn't use HTTPS, running this script is just as secure as accessing United directly
+in your browser. The credentials aren't stored anywhere by the script.
 
 # Dependencies
 [mechanize](http://wwwsearch.sourceforge.net/mechanize/) allows for programmatic navigation of web pages. Install it with `easy_install mechanize`.
@@ -8,6 +15,8 @@ United doesn't provide an API or export of your frequent flier information, such
 [soupselect](http://code.google.com/p/soupselect/) makes working with BeautifulSoup easier. It's bundled in the code.
 
 # Usage
-python united.py [UNITED USERNAME] [password]
+> Print out all of your flight history in CSV format.
 
-Prints out all of your flight history in CSV format.
+    python united.py [UNITED USERNAME] [password]
+
+
