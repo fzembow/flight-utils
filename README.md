@@ -17,7 +17,8 @@ in your browser. The credentials aren't stored anywhere by the script.
 # Usage
 
 ```
-united.py [-h] [--include_non_flights] USERNAME PASSWORD
+united.py [-h] [--include_non_flights] [--skip_iata_codes]
+                 USERNAME PASSWORD
 
 Fetch United MileagePlus flight history
 
@@ -30,4 +31,6 @@ optional arguments:
   --include_non_flights
                         Whether to include non-flight entries, like mile
                         transfers or car rentals.
+  --skip_iata_codes     Whether to skip trying to find the IATA codes for
+                        airports involved.
 ```

@@ -1,6 +1,7 @@
 from BeautifulSoup import BeautifulSoup
 from soupselect import select
 import mechanize
+import united_utils
 
 import sys, time, urllib, os, csv, datetime, argparse, warnings
 
@@ -13,8 +14,6 @@ NEW_URL_STATEMENT = 'http://www.united.com/web/en-US/apps/mileageplus/statement/
 CRAWL_DELAY = 1 # Seconds to wait between HTTP requests.
 
 
-
-
 def main():
   """If the script is run from the command line, it takes a username and password."""
 
@@ -25,18 +24,20 @@ def main():
                       help='PIN or password.')
   parser.add_argument('--include_non_flights', action='store_true',
                       help='Whether to include non-flight entries, like mile transfers or car rentals.')
+  parser.add_argument('--skip_iata_codes', action='store_true',
+                      help='Whether to skip trying to find the IATA codes for airports involved.')
   opts = parser.parse_args()
 
-  flights = fetch_united_history(opts.username, opts.password, opts)
-  dump_csv(flights)
+  flights = fetch_united_history(opts)
+  dump_csv(flights, opts)
 
 
-def fetch_united_history(username, password, opts=None):
+def fetch_united_history(opts=None):
   """Retrieves a given user's United history."""
 
   # Set up browser
   browser = setup_browser()
-  login(browser, username, password)
+  login(browser, opts.username, opts.password)
 
   # Find the URLs for eall of the statements.
   statement_urls = get_statement_urls(browser, OLD_URL_BASE, True)
@@ -135,15 +136,23 @@ def parse_statement_flights(soup, opts=None):
       if opts and opts.include_non_flights:
         trips.append(values)
     else: 
+      # For flights, also try to look up IATA codes since United doesn't provide them.
+      if not opts.skip_iata_codes:
+        parser = united_utils.UnitedAirportParser()
+      try:
+        codes = parser.get_iata_codes(values[2])
+        values.extend(codes)
+      except ValueError:
+        values.extend(('',''))
       trips.append(values)
   return trips
 
 
-def dump_csv(flights):
+def dump_csv(flights, opts):
   """Writes the flights as a CSV to stdout."""
 
   writer = csv.writer(sys.stdout)
-  writer.writerow([
+  fieldnames = [
     'date',
     'flight', 
     'airports',
@@ -153,7 +162,13 @@ def dump_csv(flights):
     'total_miles',
     'premier_miles',
     'premier_segments',
-  ])
+  ]
+
+  # Add the IATA fields which are at the end.
+  if not opts.skip_iata_codes:
+    fieldnames.extend(('start_airport_iata', 'end_airport_iata'))
+
+  writer.writerow(fieldnames)
   writer.writerows(flights)
 
 
