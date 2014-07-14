@@ -9,8 +9,8 @@ USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 
 ACCOUNT_URL = 'http://www.united.com/web/en-US/apps/account/account.aspx'
 OLD_URL_BASE = 'http://www.united.com/web/en-US/apps/mileageplus/statement/statement.aspx?MP=1'
 OLD_URL_STATEMENT = 'http://www.united.com/web/en-US/apps/mileageplus/statement/statement.aspx?MP=1&SD=%s'
-NEW_URL_BASE = 'http://www.united.com/web/en-US/apps/mileageplus/statement/statement.aspx'
-NEW_URL_STATEMENT = 'http://www.united.com/web/en-US/apps/mileageplus/statement/statement.aspx?SD=%s'
+NEW_URL_BASE = 'http://www.united.com/web/en-US/apps/mileageplus/statement/PriorStatement.aspx'
+NEW_URL_STATEMENT = 'http://www.united.com/web/en-US/apps/mileageplus/statement/PriorStatement.aspx?SD=%s'
 CRAWL_DELAY = 1 # Seconds to wait between HTTP requests.
 
 
@@ -40,8 +40,11 @@ def fetch_united_history(opts=None):
   login(browser, opts.username, opts.password)
 
   # Find the URLs for eall of the statements.
-  statement_urls = get_statement_urls(browser, OLD_URL_BASE, True)
-  statement_urls.extend(get_statement_urls(browser, NEW_URL_BASE, False))
+
+  # TODO(fil): Remove the following, I don't think the old url base is in use any longer.
+  # statement_urls = get_statement_urls(browser, OLD_URL_BASE, True)
+
+  statement_urls = get_statement_urls(browser, NEW_URL_BASE, False)
 
   # Get flights from each statement.
   flights = []
@@ -81,11 +84,14 @@ def login(browser, username, password):
 def get_statement_urls(browser, base_url, is_old_statement):
   """Finds the URLs for each other statement, given a base URL for a statement."""
 
-  STATEMENT_SELECT_ID = '#ctl00_ContentInfo_drpStatementDates option'
+  STATEMENT_SELECT_ID = '#ctl00_ContentInfo_HeaderInformation_drpStatementDates option'
 
   # There is a <select> on the page with the other statements linked.
   response = browser.open(base_url)
-  soup = BeautifulSoup(response.read())
+
+  response_data = response.read()
+
+  soup = BeautifulSoup(response_data)
   statement_dates = select(soup, STATEMENT_SELECT_ID)
   if len(statement_dates) == 0:
     print "Couldn't find statement selector at %s" % base_url
@@ -111,6 +117,8 @@ def get_statement_flights(browser, statement_url, opts=None):
   html = browser.open(statement_url).read()
   flights = parse_statement_flights(BeautifulSoup(html), opts)
   time.sleep(CRAWL_DELAY)
+
+  print flights
   return flights
 
 
@@ -118,12 +126,13 @@ def parse_statement_flights(soup, opts=None):
   """Takes a BeautifulSoup instance and finds what flights, if any, it contains."""
 
   notes = select(soup, "span.Notes")
-  if len(notes) % 10 != 0:
-    print "Unexpected number of span.notes in page!"
-    sys.exit(1)
+  if len(notes) % 11 == 0:
+    delta = 11
+  else:
+    delta = 10
 
-  # Every 10 "Notes" is one entry
-  entries = [notes[i:i+10] for i in range(0, len(notes), 10)]
+  # Every 10 or 11 "Notes" is one entry. 
+  entries = [notes[i:i+delta] for i in range(0, len(notes), delta)]
 
   trips = []
   for entry in entries:
